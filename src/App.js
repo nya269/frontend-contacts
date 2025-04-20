@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
+const API_URL = process.env.REACT_APP_API_URL;
+const API_KEY = process.env.REACT_APP_API_KEY;
+
 function App() {
   const [contacts, setContacts] = useState([]);
   const [formData, setFormData] = useState({
@@ -16,9 +19,14 @@ function App() {
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
-    axios.get("http://localhost:3001/contacts")
+    axios.get(`${API_URL}/contacts`, {
+      headers: { "x-api-key": API_KEY }
+    })
       .then((response) => setContacts(response.data))
-      .catch((error) => console.error("Erreur récupération :", error));
+      .catch((error) => {
+        console.error("Erreur récupération :", error);
+        setErrorMessage("❌ Erreur récupération des contacts");
+      });
   }, []);
 
   const handleChange = (e) => {
@@ -42,8 +50,12 @@ function App() {
       return;
     }
 
+    const config = {
+      headers: { "x-api-key": API_KEY }
+    };
+
     if (editId) {
-      axios.put(`http://localhost:3001/contacts/${editId}`, formData)
+      axios.put(`${API_URL}/contacts/${editId}`, formData, config)
         .then(() => {
           setContacts(contacts.map(c => c.id === editId ? { id: editId, ...formData } : c));
           setSuccessMessage("✏️ Contact modifié !");
@@ -51,7 +63,7 @@ function App() {
         })
         .catch(err => setErrorMessage("❌ " + (err.response?.data?.error || "Erreur modification")));
     } else {
-      axios.post("http://localhost:3001/contacts", formData)
+      axios.post(`${API_URL}/contacts`, formData, config)
         .then((res) => {
           const newContact = { id: res.data.id, ...formData };
           setContacts(prev => [...prev, newContact]);
@@ -70,7 +82,9 @@ function App() {
   const handleDelete = (id) => {
     setDeletingId(id);
     setTimeout(() => {
-      axios.delete(`http://localhost:3001/contacts/${id}`)
+      axios.delete(`${API_URL}/contacts/${id}`, {
+        headers: { "x-api-key": API_KEY }
+      })
         .then(() => {
           setContacts(contacts.filter(c => c.id !== id));
           setDeletingId(null);
@@ -80,7 +94,7 @@ function App() {
           console.error("Erreur suppression :", err);
           setErrorMessage("❌ Erreur lors de la suppression");
         });
-    }, 300); // délai pour l'animation
+    }, 300);
   };
 
   return (
@@ -105,7 +119,6 @@ function App() {
         <table className="contact-table">
           <thead>
             <tr>
-              {/*<th>ID</th>*/}
               <th>Nom</th>
               <th>Prénom</th>
               <th>Email</th>
@@ -119,7 +132,6 @@ function App() {
                 key={contact.id}
                 className={`fade ${deletingId === contact.id ? "fade-out" : "fade-in"}`}
               >
-                {/*<td>{contact.id}</td>*/}
                 <td>{contact.nom}</td>
                 <td>{contact.prenom}</td>
                 <td>{contact.email}</td>
